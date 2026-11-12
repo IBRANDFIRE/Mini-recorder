@@ -26,7 +26,16 @@ jobs:
         run: |
           F=$(find . -maxdepth 3 -name settings.gradle -not -path './.git/*' | head -n 1)
           if [ -z "$F" ]; then
-            echo "::error::settings.gradle not found. Upload the project files (settings.gradle, build.gradle, app/...) to the repository."
+            Z=$(find . -maxdepth 1 -name '*.zip' | head -n 1)
+            if [ -n "$Z" ]; then
+              echo "No project folder found. Unpacking $Z ..."
+              mkdir -p _unzipped
+              unzip -q -o "$Z" -d _unzipped
+              F=$(find _unzipped -maxdepth 3 -name settings.gradle | head -n 1)
+            fi
+          fi
+          if [ -z "$F" ]; then
+            echo "::error::settings.gradle not found. Upload the project files (settings.gradle, build.gradle, app/...) or the source zip to the repository."
             ls -la
             exit 1
           fi

@@ -22,6 +22,18 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v4
 
+      - name: Find the Gradle project folder
+        run: |
+          F=$(find . -maxdepth 3 -name settings.gradle -not -path './.git/*' | head -n 1)
+          if [ -z "$F" ]; then
+            echo "::error::settings.gradle not found. Upload the project files (settings.gradle, build.gradle, app/...) to the repository."
+            ls -la
+            exit 1
+          fi
+          D=$(dirname "$F")
+          echo "PROJECT_DIR=$D" >> "$GITHUB_ENV"
+          echo "Project folder: $D"
+
       - name: Set up Java 17
         uses: actions/setup-java@v4
         with:
@@ -69,12 +81,13 @@ jobs:
           fi
 
       - name: Build release APK
-        run: gradle --no-daemon assembleRelease --stacktrace
+        run: gradle --no-daemon -p "$PROJECT_DIR" assembleRelease --stacktrace
 
       - name: Name the APK
         run: |
-          test -f app/build/outputs/apk/release/app-release.apk
-          cp app/build/outputs/apk/release/app-release.apk "MiniRecorder-build-${{ github.run_number }}.apk"
+          APK="$PROJECT_DIR/app/build/outputs/apk/release/app-release.apk"
+          test -f "$APK"
+          cp "$APK" "MiniRecorder-build-${{ github.run_number }}.apk"
 
       - name: Upload APK (Actions artifact)
         uses: actions/upload-artifact@v4
